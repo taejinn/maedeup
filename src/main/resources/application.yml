@@ -1,0 +1,20 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+spring:
+  security:
+    user:
+      name: maedeup
+      password: 1234
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/maedeup?serverTimezone=UTC&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true
+    username: maedeup
+    password: 1234

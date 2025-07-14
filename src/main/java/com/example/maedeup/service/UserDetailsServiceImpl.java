@@ -21,14 +21,14 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findByLoginId(username)
                 .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + username));
 
         GrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
         Collection<GrantedAuthority> authorities = Collections.singletonList(authority);
 
         return new org.springframework.security.core.userdetails.User(
-                user.getUsername(),
+                user.getLoginId(),
                 user.getPassword(),
                 authorities
         );

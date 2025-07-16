@@ -4,11 +4,14 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "events")
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Inheritance(strategy = InheritanceType.JOINED)
 @DiscriminatorColumn(name = "event_type")
@@ -31,8 +34,9 @@ public abstract class Event extends BaseTimeEntity {
 
     private String imageUrl;
 
-    @Column(name="result_visibility", length = 20, nullable = false)
-    private String resultVisibility;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ResultVisibility resultVisibility;
 
     @Lob
     private String announcementMessage;
@@ -41,4 +45,12 @@ public abstract class Event extends BaseTimeEntity {
     private LocalDateTime startTime;
 
     private LocalDateTime canceledAt;
+
+    protected Event(User creator, String title, String description, LocalDateTime startTime) {
+        this.creator = creator;
+        this.title = title;
+        this.description = description;
+        this.startTime = startTime;
+        this.resultVisibility = ResultVisibility.PRIVATE;
+    }
 }

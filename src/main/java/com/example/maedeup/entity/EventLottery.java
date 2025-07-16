@@ -25,4 +25,11 @@ public class EventLottery extends Event {
 
     @Column(length = 36, unique = true)
     private String drawTransactionId;
+
+    public EventLottery(User creator, String title, String description, LocalDateTime startTime, LocalDateTime endTime, LocalDateTime drawTime, Integer winnerCount) {
+        super(creator, title, description, startTime);
+        this.endTime = endTime;
+        this.drawTime = drawTime;
+        this.winnerCount = winnerCount;
+    }
 }

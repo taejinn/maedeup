@@ -28,8 +28,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         Collection<GrantedAuthority> authorities = Collections.singletonList(authority);
 
         return new org.springframework.security.core.userdetails.User(
-                user.getLoginId(),
-                user.getPassword(),
+                user.getLoginId(), // username
+                user.getPassword(), // password
                 authorities
         );
     }

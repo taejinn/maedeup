@@ -25,12 +25,15 @@ public class AdminEventService {
     private final EventRepository eventRepository;
     private final ParticipationRepository participationRepository;
     private final UserRepository userRepository;
+    private final RedisEventCounterService redisEventCounterService;
 
     @Transactional
     public Event createEvent(EventCreateRequestDto requestDto, String creatorLoginId) {
         User creator = userRepository.findByLoginId(creatorLoginId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 관리자입니다."));
 
+        Event savedEvent;
+        
         if (requestDto.eventType() == EventType.FCFS) {
             EventFcfs event = new EventFcfs(
                     creator,
@@ -39,7 +42,7 @@ public class AdminEventService {
                     requestDto.startTime(),
                     requestDto.maxParticipants()
             );
-            return eventRepository.save(event);
+            savedEvent = eventRepository.save(event);
         } else {
             EventLottery event = new EventLottery(
                     creator,
@@ -50,8 +53,12 @@ public class AdminEventService {
                     requestDto.drawTime(),
                     requestDto.winnerCount()
             );
-            return eventRepository.save(event);
+            savedEvent = eventRepository.save(event);
         }
+
+        redisEventCounterService.initializeParticipantCount(savedEvent.getId(), 0L);
+        
+        return savedEvent;
     }
 
     @Transactional
@@ -66,10 +73,7 @@ public class AdminEventService {
 
     @Transactional
     public void deleteEvent(Long eventId) {
-        // TODO: 이벤트에 연관된 참여, 알림 데이터 등을 먼저 삭제하거나 비활성화하는 로직 추가 필요
-        // THINK: 근데 이벤트가 삭제되어도 알림을 남겨두는 게 좋을 수도 있음
-        // 삭제된 이벤트라도 참여했던 이벤트라면 계속 유지되도록? 아니다 그냥 지워지게? 참여기록도?
-        // 차피 참여기록은 남아있으니 이벤트 삭제 시 참여 기록도 같이 삭제하는 게 맞을 듯 db 구조도 그렇고
+        redisEventCounterService.clearEventData(eventId);
         eventRepository.deleteById(eventId);
     }
 

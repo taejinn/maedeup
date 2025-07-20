@@ -8,6 +8,7 @@ import com.example.maedeup.entity.*;
 import com.example.maedeup.entity.ParticipationStatus;
 import com.example.maedeup.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -19,12 +20,15 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class EventService {
 
     private final EventRepository eventRepository;
     private final ParticipationRepository participationRepository;
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final RedisLockService redisLockService;
+    private final RedisEventCounterService redisEventCounterService;
 
     public Page<EventListResponseDto> getAllEvents(Pageable pageable) {
         return eventRepository.findAll(pageable)
@@ -47,28 +51,24 @@ public class EventService {
         User user = userRepository.findByLoginId(loginId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        Event event = eventRepository.findByIdWithPessimisticLock(eventId)
+        String lockKey = redisLockService.getEventLockKey(eventId);
+        redisLockService.executeWithLock(lockKey, () -> {
+            processEventParticipation(eventId, user);
+        });
+    }
+
+    private void processEventParticipation(Long eventId, User user) {
+        Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 이벤트입니다."));
 
-        if (participationRepository.existsByUserIdAndEventId(user.getId(), eventId)) {
-            throw new IllegalStateException("이미 참여한 이벤트입니다.");
-        }
-
-        if (LocalDateTime.now().isBefore(event.getStartTime())) {
-            throw new IllegalStateException("이벤트가 아직 시작되지 않았습니다.");
-        }
+        validateEventParticipation(event, user);
 
         ParticipationStatus status;
 
         if (event instanceof EventFcfs fcfsEvent) {
-            long successCount = participationRepository.countByEventIdAndStatus(eventId, ParticipationStatus.SUCCESS);
-            if (successCount < fcfsEvent.getMaxParticipants()) {
-                status = ParticipationStatus.SUCCESS;
-            } else {
-                status = ParticipationStatus.FAIL;
-            }
+            status = handleFcfsParticipation(eventId, user, fcfsEvent);
         } else if (event instanceof EventLottery) {
-            status = ParticipationStatus.PENDING;
+            status = handleLotteryParticipation(eventId, user);
         } else {
             throw new IllegalStateException("알 수 없는 이벤트 타입입니다.");
         }
@@ -81,6 +81,38 @@ public class EventService {
                 .build();
 
         participationRepository.save(participation);
+    }
+
+    private void validateEventParticipation(Event event, User user) {
+        if (Boolean.TRUE.equals(redisEventCounterService.isUserParticipated(event.getId(), user.getId()))) {
+            throw new IllegalStateException("이미 참여한 이벤트입니다.");
+        }
+
+        if (participationRepository.existsByUserIdAndEventId(user.getId(), event.getId())) {
+            throw new IllegalStateException("이미 참여한 이벤트입니다.");
+        }
+
+        if (LocalDateTime.now().isBefore(event.getStartTime())) {
+            throw new IllegalStateException("이벤트가 아직 시작되지 않았습니다.");
+        }
+
+        if (event.getCanceledAt() != null) {
+            throw new IllegalStateException("취소된 이벤트입니다.");
+        }
+    }
+
+    private ParticipationStatus handleFcfsParticipation(Long eventId, User user, EventFcfs fcfsEvent) {
+        if (Boolean.TRUE.equals(redisEventCounterService.canParticipate(eventId, fcfsEvent.getMaxParticipants(), user.getId()))) {
+            redisEventCounterService.incrementParticipantCount(eventId, user.getId());
+            return ParticipationStatus.SUCCESS;
+        } else {
+            return ParticipationStatus.FAIL;
+        }
+    }
+
+    private ParticipationStatus handleLotteryParticipation(Long eventId, User user) {
+        redisEventCounterService.incrementParticipantCount(eventId, user.getId());
+        return ParticipationStatus.PENDING;
     }
 
     @Transactional
@@ -96,6 +128,14 @@ public class EventService {
         }
 
         Event event = participation.getEvent();
+        
+        String lockKey = redisLockService.getEventLockKey(event.getId());
+        redisLockService.executeWithLock(lockKey, () -> {
+            processCancelParticipation(participation, event);
+        });
+    }
+
+    private void processCancelParticipation(Participation participation, Event event) {
         LocalDateTime now = LocalDateTime.now();
 
         if (event instanceof EventLottery lotteryEvent) {
@@ -107,6 +147,9 @@ public class EventService {
                 throw new IllegalStateException("이미 시작된 이벤트는 참여를 취소할 수 없습니다.");
             }
         }
+
+        redisEventCounterService.decrementParticipantCount(event.getId(), participation.getUser().getId());
+        
         participationRepository.delete(participation);
     }
 

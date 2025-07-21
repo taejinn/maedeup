@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>매듭 - 실시간 이벤트 플랫폼</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", Pretendard, Roboto, "Noto Sans KR", "Segoe UI", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+        }
+        .hero-section {
+            background: #f8f9fa;
+            padding: 80px 0;
+        }
+        .card-hover {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .feature-card {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand text-primary fw-bold fs-4" th:href="@{/}">
+                매듭
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" th:href="@{/}">홈</a>
+                    </li>
+                    <li class="nav-item" sec:authorize="isAuthenticated()">
+                        <a class="nav-link" th:href="@{/events}">이벤트</a>
+                    </li>
+                    <li class="nav-item" sec:authorize="isAuthenticated()">
+                        <a class="nav-link" th:href="@{/my}">마이페이지</a>
+                    </li>
+                    <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                        <a class="nav-link" th:href="@{/admin}">관리자</a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item" sec:authorize="!isAuthenticated()">
+                        <a class="btn btn-outline-primary me-2" th:href="@{/login}">로그인</a>
+                    </li>
+                    <li class="nav-item dropdown" sec:authorize="isAuthenticated()">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <span sec:authentication="name"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" th:href="@{/my}">마이페이지</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form th:action="@{/logout}" method="post" class="d-inline">
+                                    <button type="submit" class="dropdown-item">로그아웃</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero-section">
+        <div class="container">
+            <div class="row justify-content-center text-center">
+                <div class="col-lg-8">
+                    <h1 class="h2 fw-bold mb-3 text-dark">매듭</h1>
+                    <p class="mb-3 text-muted">사용자와 기회를 연결하는 실시간 이벤트 플랫폼</p>
+                    <p class="mb-4 text-muted">선착순 티켓팅부터 추첨 이벤트까지, 공정하고 안정적인 이벤트 참여 경험을 제공합니다.</p>
+                    
+                    <div class="d-flex justify-content-center gap-2 flex-wrap">
+                        <a th:href="@{/events}" class="btn btn-primary" sec:authorize="isAuthenticated()">
+                            이벤트 참여하기
+                        </a>
+                        <a th:href="@{/login}" class="btn btn-outline-primary" sec:authorize="!isAuthenticated()">
+                            로그인
+                        </a>
+                        <a th:href="@{/signup}" class="btn btn-primary" sec:authorize="!isAuthenticated()">
+                            회원가입
+                        </a>
+                        <a th:href="@{/swagger-ui/index.html}" class="btn btn-outline-secondary">
+                            API 문서
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-5 bg-white">
+        <div class="container">
+            <div class="row text-center mb-5">
+                <div class="col">
+                    <h2 class="h3 mb-3">핵심 기능</h2>
+                    <p class="text-muted">매듭이 제공하는 다양한 기능들</p>
+                </div>
+            </div>
+            
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card h-100 feature-card card-hover">
+                        <div class="card-body text-center p-4">
+                            <h5 class="card-title text-primary">실시간 처리</h5>
+                            <p class="card-text text-muted">Redis를 활용한 분산 락으로 대용량 트래픽에서도 안정적인 이벤트 참여 처리</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card h-100 feature-card card-hover">
+                        <div class="card-body text-center p-4">
+                            <h5 class="card-title text-primary">선착순 이벤트</h5>
+                            <p class="card-text text-muted">공정한 선착순 처리로 모든 참가자에게 동등한 기회 제공</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card h-100 feature-card card-hover">
+                        <div class="card-body text-center p-4">
+                            <h5 class="card-title text-primary">추첨 이벤트</h5>
+                            <p class="card-text text-muted">투명한 추첨 시스템으로 신뢰할 수 있는 이벤트 진행</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card h-100 feature-card card-hover">
+                        <div class="card-body text-center p-4">
+                            <h5 class="card-title text-primary">실시간 모니터링</h5>
+                            <p class="card-text text-muted">이벤트 진행 상황과 참여자 현황을 실시간으로 확인</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card h-100 feature-card card-hover">
+                        <div class="card-body text-center p-4">
+                            <h5 class="card-title text-primary">보안</h5>
+                            <p class="card-text text-muted">Spring Security 기반의 안전한 사용자 인증 및 권한 관리</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card h-100 feature-card card-hover">
+                        <div class="card-body text-center p-4">
+                            <h5 class="card-title text-primary">API 제공</h5>
+                            <p class="card-text text-muted">RESTful API와 Swagger 문서로 쉬운 연동 및 테스트</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-5 bg-light">
+        <div class="container text-center">
+            <div class="row">
+                <div class="col-lg-6 mx-auto">
+                    <h2 class="h4 mb-3">지금 시작하세요</h2>
+                    <p class="mb-4 text-muted">매듭과 함께 공정하고 안정적인 이벤트 참여 경험을 시작해보세요</p>
+                    
+                    <div class="d-flex justify-content-center gap-2" sec:authorize="!isAuthenticated()">
+                        <a th:href="@{/login}" class="btn btn-primary">
+                            로그인
+                        </a>
+                        <a th:href="@{/signup}" class="btn btn-outline-primary">
+                            회원가입
+                        </a>
+                    </div>
+                    
+                    <div class="d-flex justify-content-center gap-2" sec:authorize="isAuthenticated()">
+                        <a th:href="@{/events}" class="btn btn-primary">
+                            이벤트 참여하기
+                        </a>
+                        <a th:href="@{/my}" class="btn btn-outline-primary">
+                            마이페이지
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-dark text-light py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>매듭</h5>
+                    <p class="mb-0">실시간 이벤트 플랫폼으로 공정한 기회를 제공합니다.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <small>&copy; 2024 매듭. All rights reserved.</small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

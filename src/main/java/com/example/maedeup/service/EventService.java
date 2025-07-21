@@ -7,6 +7,7 @@ import com.example.maedeup.dto.NotificationResponseDto;
 import com.example.maedeup.entity.*;
 import com.example.maedeup.entity.ParticipationStatus;
 import com.example.maedeup.exception.EntityNotFoundException;
+import com.example.maedeup.exception.ValidationException;
 import com.example.maedeup.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +38,7 @@ public class EventService {
                 .map(event -> new EventListResponseDto(
                         event.getId(),
                         event.getTitle(),
+                        event.getDescription(),
                         (event instanceof EventFcfs) ? EventType.FCFS : EventType.LOTTERY,
                         event.getStartTime()
                 ));
@@ -101,34 +103,38 @@ public class EventService {
     }
 
     private void validateEventParticipation(Event event, User user) {
-        if (Boolean.TRUE.equals(redisEventCounterService.isUserParticipated(event.getId(), user.getId()))) {
-            throw new IllegalStateException("이미 참여한 이벤트입니다.");
-        }
-
         if (participationRepository.existsByUserIdAndEventId(user.getId(), event.getId())) {
-            throw new IllegalStateException("이미 참여한 이벤트입니다.");
+            throw new ValidationException("이미 참여한 이벤트입니다.");
         }
 
         if (LocalDateTime.now().isBefore(event.getStartTime())) {
-            throw new IllegalStateException("이벤트가 아직 시작되지 않았습니다.");
+            throw new ValidationException("이벤트가 아직 시작되지 않았습니다.");
         }
 
         if (event.getCanceledAt() != null) {
-            throw new IllegalStateException("취소된 이벤트입니다.");
+            throw new ValidationException("취소된 이벤트입니다.");
         }
     }
 
     private ParticipationStatus handleFcfsParticipation(Long eventId, User user, EventFcfs fcfsEvent) {
-        if (Boolean.TRUE.equals(redisEventCounterService.canParticipate(eventId, fcfsEvent.getMaxParticipants(), user.getId()))) {
-            redisEventCounterService.incrementParticipantCount(eventId, user.getId());
-            return ParticipationStatus.SUCCESS;
-        } else {
+        RedisEventCounterService.ParticipationResult result = 
+            redisEventCounterService.tryParticipate(eventId, user.getId(), fcfsEvent.getMaxParticipants());
+        
+        if (!result.canParticipate) {
             return ParticipationStatus.FAIL;
         }
+        
+        return ParticipationStatus.SUCCESS;
     }
 
     private ParticipationStatus handleLotteryParticipation(Long eventId, User user) {
-        redisEventCounterService.incrementParticipantCount(eventId, user.getId());
+        RedisEventCounterService.ParticipationResult result = 
+            redisEventCounterService.tryParticipate(eventId, user.getId(), null);
+        
+        if (!result.canParticipate && "ALREADY_PARTICIPATED".equals(result.reason)) {
+            throw new ValidationException("이미 참여한 이벤트입니다.");
+        }
+        
         return ParticipationStatus.PENDING;
     }
 
@@ -142,7 +148,7 @@ public class EventService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 참여 기록입니다."));
 
         if (!participation.getUser().getId().equals(user.getId())) {
-            throw new IllegalStateException("본인의 참여 기록만 취소할 수 있습니다.");
+            throw new ValidationException("본인의 참여 기록만 취소할 수 있습니다.");
         }
 
         Event event = participation.getEvent();
@@ -162,17 +168,21 @@ public class EventService {
 
         if (event instanceof EventLottery lotteryEvent) {
             if (now.isAfter(lotteryEvent.getDrawTime())) {
-                throw new IllegalStateException("이미 추첨이 진행된 이벤트는 참여를 취소할 수 없습니다.");
+                throw new ValidationException("이미 추첨이 진행된 이벤트는 참여를 취소할 수 없습니다.");
             }
         } else {
             if (now.isAfter(event.getStartTime())) {
-                throw new IllegalStateException("이미 시작된 이벤트는 참여를 취소할 수 없습니다.");
+                throw new ValidationException("이미 시작된 이벤트는 참여를 취소할 수 없습니다.");
             }
         }
 
-        redisEventCounterService.decrementParticipantCount(event.getId(), participation.getUser().getId());
-        
         participationRepository.delete(participation);
+        
+        try {
+            redisEventCounterService.decrementParticipantCount(event.getId(), participation.getUser().getId());
+        } catch (Exception e) {
+            log.warn("Redis decrement failed during cancellation: {}", e.getMessage());
+        }
     }
 
     public List<MyParticipationResponseDto> getMyParticipations(String loginId) {

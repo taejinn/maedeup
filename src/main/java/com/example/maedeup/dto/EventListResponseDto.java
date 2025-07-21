@@ -12,6 +12,9 @@ public record EventListResponseDto(
         @Schema(description = "이벤트 제목", example = "특별 할인 이벤트")
         String title,
         
+        @Schema(description = "이벤트 설명", example = "선착순 100명에게 50% 할인 쿠폰을 드립니다.")
+        String description,
+        
         @Schema(description = "이벤트 타입", example = "FCFS")
         EventType eventType,
         

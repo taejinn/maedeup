@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>마이페이지 - 매듭</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", Pretendard, Roboto, "Noto Sans KR", "Segoe UI", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+        }
+        .profile-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-3px);
+        }
+        .participation-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+            border-radius: 8px;
+        }
+        .participation-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .status-badge {
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand text-primary fw-bold fs-4" th:href="@{/}">
+                매듭
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/}">홈</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/events}">이벤트</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" th:href="@{/my}">마이페이지</a>
+                    </li>
+                    <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                        <a class="nav-link" th:href="@{/admin}">관리자</a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <span sec:authentication="name"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" th:href="@{/my}">마이페이지</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form th:action="@{/logout}" method="post" class="d-inline">
+                                    <button type="submit" class="dropdown-item">로그아웃</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <div class="row">
+            <div class="col-lg-4 mb-4">
+                <div class="profile-card p-4 text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-person-circle display-1 text-primary"></i>
+                    </div>
+                    <h4 class="mb-2 text-dark" th:text="${username}">사용자명</h4>
+                    <p class="mb-3 text-muted">매듭 회원</p>
+                    
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="h5 mb-0 text-primary" th:text="${participations.size()}">0</div>
+                            <small class="text-muted">참여 이벤트</small>
+                        </div>
+                        <div class="col-6">
+                            <div class="h5 mb-0 text-primary" th:text="${notifications.size()}">0</div>
+                            <small class="text-muted">알림</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-2">
+                    <div class="col-6">
+                        <div class="stat-card p-3 text-center">
+                            <div class="h6 mb-0 text-success" th:text="${participations.?[status.name() == 'SUCCESS'].size()}">0</div>
+                            <small class="text-muted">성공</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-card p-3 text-center">
+                            <div class="h6 mb-0 text-warning" th:text="${participations.?[status.name() == 'PENDING'].size()}">0</div>
+                            <small class="text-muted">대기중</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <ul class="nav nav-pills mb-4" id="myTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="participations-tab" data-bs-toggle="pill" data-bs-target="#participations" type="button" role="tab">
+                            참여 내역
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="notifications-tab" data-bs-toggle="pill" data-bs-target="#notifications" type="button" role="tab">
+                            알림 <span class="badge bg-danger ms-1" th:if="${notifications.?[!read].size() > 0}" th:text="${notifications.?[!read].size()}">0</span>
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="myTabContent">
+                    <div class="tab-pane fade show active" id="participations" role="tabpanel">
+                        <div class="row g-3" th:if="${!participations.empty}">
+                            <div class="col-md-6" th:each="participation : ${participations}">
+                                <div class="card participation-card h-100 border-0 shadow-sm">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <h6 class="card-title mb-0" th:text="${participation.eventTitle}">이벤트 제목</h6>
+                                            <span class="badge status-badge" 
+                                                  th:classappend="${participation.status.name() == 'SUCCESS'} ? 'bg-success' : 
+                                                                 (${participation.status.name() == 'PENDING'} ? 'bg-warning' : 'bg-danger')"
+                                                  th:text="${participation.status.name() == 'SUCCESS'} ? '성공' : 
+                                                           (${participation.status.name() == 'PENDING'} ? '대기중' : '실패')">상태</span>
+                                        </div>
+                                        <p class="text-muted small mb-2">
+                                            참여일: <span th:text="${#temporals.format(participation.participatedAt, 'yyyy-MM-dd HH:mm')}">2024-12-25 10:00</span>
+                                        </p>
+                                        <div class="d-flex gap-2">
+                                            <a th:href="@{/events/{id}(id=${participation.eventId})}" class="btn btn-outline-primary btn-sm">
+                                                상세보기
+                                            </a>
+                                            <button class="btn btn-outline-danger btn-sm" 
+                                                    th:if="${participation.status.name() != 'FAIL'}"
+                                                    th:onclick="'cancelParticipation(' + ${participation.participationId} + ')'">
+                                                취소
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div th:if="${participations.empty}">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body text-center py-5">
+                                    <div class="display-1 text-muted mb-3">
+                                        📅
+                                    </div>
+                                    <h5 class="text-muted">참여한 이벤트가 없습니다</h5>
+                                    <p class="text-muted">새로운 이벤트에 참여해보세요!</p>
+                                    <a th:href="@{/events}" class="btn btn-primary">
+                                        이벤트 보러가기
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="notifications" role="tabpanel">
+                        <div th:if="${!notifications.empty}">
+                            <div class="card mb-3 border-0 shadow-sm" th:each="notification : ${notifications}">
+                                <div class="card-body" th:classappend="${!notification.read} ? 'bg-light'">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <p class="mb-1" th:text="${notification.message}">알림 메시지</p>
+                                            <small class="text-muted">
+                                                <span th:text="${#temporals.format(notification.createdAt, 'yyyy-MM-dd HH:mm')}">2024-12-25 10:00</span>
+                                            </small>
+                                        </div>
+                                        <div th:if="${!notification.read}">
+                                            <span class="badge bg-primary">New</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div th:if="${notifications.empty}">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body text-center py-5">
+                                    <div class="display-1 text-muted mb-3">
+                                        🔔
+                                    </div>
+                                    <h5 class="text-muted">알림이 없습니다</h5>
+                                    <p class="text-muted">새로운 알림이 있을 때 여기에 표시됩니다.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-light mt-5 py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>매듭</h5>
+                    <p class="mb-0">실시간 이벤트 플랫폼으로 공정한 기회를 제공합니다.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <small>&copy; 2024 매듭. All rights reserved.</small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function cancelParticipation(participationId) {
+            if (confirm('정말로 참여를 취소하시겠습니까?')) {
+                fetch(`/api/events/participations/${participationId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        alert('참여가 취소되었습니다.');
+                        location.reload();
+                    } else {
+                        return response.json().then(data => {
+                            throw new Error(data.message || '취소에 실패했습니다.');
+                        });
+                    }
+                })
+                .catch(error => {
+                    alert(error.message || '오류가 발생했습니다. 다시 시도해주세요.');
+                });
+            }
+        }
+    </script>
+</body>
+</html> 

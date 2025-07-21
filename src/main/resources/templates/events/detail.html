@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${event.title} + ' - 매듭'">이벤트 상세 - 매듭</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", Pretendard, Roboto, "Noto Sans KR", "Segoe UI", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+        }
+        .event-header {
+            background: #f8f9fa;
+            padding: 60px 0;
+        }
+        .event-details-card {
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .status-badge {
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem;
+        }
+        .info-item {
+            border-bottom: 1px solid #eee;
+            padding: 1rem 0;
+        }
+        .info-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand text-primary fw-bold fs-4" th:href="@{/}">
+                매듭
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/}">홈</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/events}">이벤트</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/my}">마이페이지</a>
+                    </li>
+                    <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                        <a class="nav-link" th:href="@{/admin}">관리자</a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <span sec:authentication="name"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" th:href="@{/my}">마이페이지</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form th:action="@{/logout}" method="post" class="d-inline">
+                                    <button type="submit" class="dropdown-item">로그아웃</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="event-header">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 mx-auto text-center">
+                    <div class="mb-3">
+                        <span class="badge status-badge" 
+                              th:classappend="${event.eventType.name() == 'FCFS'} ? 'bg-success' : 'bg-info'"
+                              th:text="${event.eventType.name() == 'FCFS'} ? '선착순 이벤트' : '추첨 이벤트'"></span>
+                    </div>
+                    <h1 class="h2 fw-bold mb-3 text-dark" th:text="${event.title}">이벤트 제목</h1>
+                    <div class="text-muted" th:utext="${event.description}" th:if="${event.description}">이벤트 설명</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container my-5">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <div class="card event-details-card border-0">
+                    <div class="card-body p-4">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="info-item">
+                                    <div class="row">
+                                        <div class="col-sm-4">
+                                            <strong>시작 시간</strong>
+                                        </div>
+                                        <div class="col-sm-8">
+                                            <span th:text="${#temporals.format(event.startTime, 'yyyy년 MM월 dd일 (E) HH:mm')}">2024년 12월 25일 (수) 10:00</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="info-item" th:if="${event.endTime}">
+                                    <div class="row">
+                                        <div class="col-sm-4">
+                                            <strong>종료 시간</strong>
+                                        </div>
+                                        <div class="col-sm-8">
+                                            <span th:text="${#temporals.format(event.endTime, 'yyyy년 MM월 dd일 (E) HH:mm')}">2024년 12월 25일 (수) 23:59</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="info-item" th:if="${event.drawTime}">
+                                    <div class="row">
+                                        <div class="col-sm-4">
+                                            <strong>추첨 시간</strong>
+                                        </div>
+                                        <div class="col-sm-8">
+                                            <span th:text="${#temporals.format(event.drawTime, 'yyyy년 MM월 dd일 (E) HH:mm')}">2024년 12월 26일 (목) 10:00</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="info-item" th:if="${event.maxParticipants}">
+                                    <div class="row">
+                                        <div class="col-sm-4">
+                                            <strong>최대 참여자</strong>
+                                        </div>
+                                        <div class="col-sm-8">
+                                            <span th:text="${event.maxParticipants} + '명'">100명</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="info-item" th:if="${event.winnerCount}">
+                                    <div class="row">
+                                        <div class="col-sm-4">
+                                            <strong>당첨자 수</strong>
+                                        </div>
+                                        <div class="col-sm-8">
+                                            <span th:text="${event.winnerCount} + '명'">10명</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div th:if="${participation == null}">
+                                    <div class="d-grid">
+                                        <button class="btn btn-primary btn-lg" onclick="participateEvent()">
+                                            이벤트 참여하기
+                                        </button>
+                                    </div>
+                                    <small class="text-muted d-block text-center mt-2">참여하려면 클릭하세요</small>
+                                </div>
+
+                                <div th:if="${participation != null}">
+                                    <div class="alert alert-success text-center" th:if="${participation.status.name() == 'SUCCESS'}">
+                                        <strong>참여 완료</strong>
+                                        <p class="mb-2 small">이벤트에 성공적으로 참여했습니다!</p>
+                                        <div class="d-grid">
+                                            <button class="btn btn-outline-danger btn-sm" onclick="cancelParticipation()">
+                                                참여 취소
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="alert alert-warning text-center" th:if="${participation.status.name() == 'PENDING'}">
+                                        <strong>추첨 대기 중</strong>
+                                        <p class="mb-2 small">추첨 결과를 기다리고 있습니다.</p>
+                                        <div class="d-grid">
+                                            <button class="btn btn-outline-danger btn-sm" onclick="cancelParticipation()">
+                                                참여 취소
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="alert alert-danger text-center" th:if="${participation.status.name() == 'FAIL'}">
+                                        <strong>참여 실패</strong>
+                                        <p class="mb-0 small">아쉽게도 참여에 실패했습니다.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center mt-4">
+                    <a th:href="@{/events}" class="btn btn-outline-secondary">
+                        이벤트 목록으로
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-light mt-5 py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>매듭</h5>
+                    <p class="mb-0">실시간 이벤트 플랫폼으로 공정한 기회를 제공합니다.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <small>&copy; 2024 매듭. All rights reserved.</small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:inline="javascript">
+        const eventId = /*[[${event.eventId}]]*/ 1;
+        const participationId = /*[[${participation != null ? participation.participationId : null}]]*/ null;
+
+        function participateEvent() {
+            if (confirm('이 이벤트에 참여하시겠습니까?')) {
+                fetch(`/api/events/${eventId}/participate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        alert('이벤트 참여가 완료되었습니다!');
+                        location.reload();
+                    } else {
+                        return response.json().then(data => {
+                            throw new Error(data.message || '참여에 실패했습니다.');
+                        });
+                    }
+                })
+                .catch(error => {
+                    alert(error.message || '오류가 발생했습니다. 다시 시도해주세요.');
+                });
+            }
+        }
+
+        function cancelParticipation() {
+            if (confirm('정말로 참여를 취소하시겠습니까?')) {
+                fetch(`/api/events/participations/${participationId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        alert('참여가 취소되었습니다.');
+                        location.reload();
+                    } else {
+                        return response.json().then(data => {
+                            throw new Error(data.message || '취소에 실패했습니다.');
+                        });
+                    }
+                })
+                .catch(error => {
+                    alert(error.message || '오류가 발생했습니다. 다시 시도해주세요.');
+                });
+            }
+        }
+    </script>
+</body>
+</html> 

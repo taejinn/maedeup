@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이벤트 생성 - 매듭</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+    <link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/toastui-editor.min.css" />
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", Pretendard, Roboto, "Noto Sans KR", "Segoe UI", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+        }
+        .event-type-option {
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid #e9ecef;
+        }
+        .event-type-option:hover {
+            border-color: #0d6efd;
+        }
+        .event-type-option.selected {
+            border-color: #0d6efd;
+            background-color: #f8f9ff;
+        }
+        .conditional-field {
+            display: none;
+        }
+        .conditional-field.show {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand text-primary fw-bold fs-4" th:href="@{/}">
+                매듭
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/}">홈</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/events}">이벤트</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/my}">마이페이지</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" th:href="@{/admin}">관리자</a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <span sec:authentication="name"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" th:href="@{/my}">마이페이지</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form th:action="@{/logout}" method="post" class="d-inline">
+                                    <button type="submit" class="dropdown-item">로그아웃</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="text-center mb-4">
+                    <h1 class="h2 mb-2">새 이벤트 생성</h1>
+                    <p class="text-muted">선착순 또는 추첨 이벤트를 생성할 수 있습니다</p>
+                </div>
+
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <form id="createEventForm">
+                            <!-- 이벤트 타입 선택 -->
+                            <div class="mb-4">
+                                <label class="form-label fw-medium">이벤트 타입 <span class="text-danger">*</span></label>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="card event-type-option h-100" data-type="FCFS" onclick="selectEventType('FCFS')">
+                                            <div class="card-body text-center p-3">
+                                                <i class="bi bi-stopwatch text-success fs-1 mb-2"></i>
+                                                <h6 class="card-title">선착순</h6>
+                                                <p class="card-text small text-muted">정해진 인원수만큼 먼저 참여한 사람이 당첨</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card event-type-option h-100" data-type="LOTTERY" onclick="selectEventType('LOTTERY')">
+                                            <div class="card-body text-center p-3">
+                                                <i class="bi bi-dice-6 text-info fs-1 mb-2"></i>
+                                                <h6 class="card-title">추첨</h6>
+                                                <p class="card-text small text-muted">참여 기간 종료 후 추첨으로 당첨자 선정</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="eventType" name="eventType" required>
+                            </div>
+
+                            <!-- 기본 정보 -->
+                            <div class="row g-3 mb-4">
+                                <div class="col-12">
+                                    <label for="title" class="form-label">이벤트 제목 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="title" name="title" required 
+                                           placeholder="이벤트 제목을 입력하세요">
+                                </div>
+                                
+                                <div class="col-12">
+                                    <label for="description" class="form-label">이벤트 설명</label>
+                                    <div id="editor" style="height: 300px;"></div>
+                                    <textarea id="description" name="description" style="display: none;"></textarea>
+                                    <div class="form-text">이벤트의 목적, 참여 방법, 주의사항 등을 포함해주세요. 서식을 자유롭게 활용할 수 있습니다.</div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label for="startTime" class="form-label">시작 시간 <span class="text-danger">*</span></label>
+                                    <input type="datetime-local" class="form-control" id="startTime" name="startTime" required>
+                                </div>
+                            </div>
+
+                            <!-- 선착순 설정 -->
+                            <div class="conditional-field" id="fcfsFields">
+                                <div class="border-top pt-4 mb-4">
+                                    <h6 class="text-success mb-3">
+                                        <i class="bi bi-stopwatch me-2"></i>선착순 설정
+                                    </h6>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label for="maxParticipants" class="form-label">최대 참여자 수 <span class="text-danger">*</span></label>
+                                            <input type="number" class="form-control" id="maxParticipants" name="maxParticipants" 
+                                                   min="1" placeholder="100">
+                                            <div class="form-text">선착순으로 참여할 수 있는 최대 인원수</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 추첨 설정 -->
+                            <div class="conditional-field" id="lotteryFields">
+                                <div class="border-top pt-4 mb-4">
+                                    <h6 class="text-info mb-3">
+                                        <i class="bi bi-dice-6 me-2"></i>추첨 설정
+                                    </h6>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label for="endTime" class="form-label">종료 시간 <span class="text-danger">*</span></label>
+                                            <input type="datetime-local" class="form-control" id="endTime" name="endTime">
+                                            <div class="form-text">참여 접수 마감 시간</div>
+                                        </div>
+                                        
+                                        <div class="col-md-6">
+                                            <label for="drawTime" class="form-label">추첨 시간 <span class="text-danger">*</span></label>
+                                            <input type="datetime-local" class="form-control" id="drawTime" name="drawTime">
+                                            <div class="form-text">당첨자 발표 시간</div>
+                                        </div>
+                                        
+                                        <div class="col-md-6">
+                                            <label for="winnerCount" class="form-label">당첨자 수 <span class="text-danger">*</span></label>
+                                            <input type="number" class="form-control" id="winnerCount" name="winnerCount" 
+                                                   min="1" placeholder="10">
+                                            <div class="form-text">추첨으로 선정할 당첨자 수</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 버튼 -->
+                            <div class="d-flex gap-2">
+                                <a th:href="@{/admin/events}" class="btn btn-outline-secondary">취소</a>
+                                <button type="submit" class="btn btn-primary ms-auto">이벤트 생성</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-white border-top mt-5 py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-dark">매듭</h6>
+                    <p class="mb-0 text-muted small">실시간 이벤트 플랫폼으로 공정한 기회를 제공합니다.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <small class="text-muted">&copy; 2024 매듭. All rights reserved.</small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js"></script>
+    <script>
+        let selectedEventType = null;
+        let editor;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            editor = new toastui.Editor({
+                el: document.querySelector('#editor'),
+                height: '300px',
+                initialEditType: 'wysiwyg',
+                placeholder: '이벤트에 대한 자세한 설명을 입력하세요...',
+                language: 'ko-KR',
+                toolbarItems: [
+                    ['heading', 'bold', 'italic', 'strike'],
+                    ['hr', 'quote'],
+                    ['ul', 'ol', 'task', 'indent', 'outdent'],
+                    ['table', 'link'],
+                    ['code', 'codeblock']
+                ]
+            });
+            
+            editor.on('change', function() {
+                document.getElementById('description').value = editor.getHTML();
+            });
+        });
+
+        function selectEventType(type) {
+            selectedEventType = type;
+            document.getElementById('eventType').value = type;
+            
+            // 카드 선택 상태 업데이트
+            document.querySelectorAll('.event-type-option').forEach(card => {
+                card.classList.remove('selected');
+            });
+            document.querySelector(`[data-type="${type}"]`).classList.add('selected');
+            
+            // 조건부 필드 표시
+            document.querySelectorAll('.conditional-field').forEach(field => {
+                field.classList.remove('show');
+            });
+            
+            if (type === 'FCFS') {
+                document.getElementById('fcfsFields').classList.add('show');
+            } else if (type === 'LOTTERY') {
+                document.getElementById('lotteryFields').classList.add('show');
+            }
+        }
+
+        document.getElementById('createEventForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!selectedEventType) {
+                alert('이벤트 타입을 선택해주세요.');
+                return;
+            }
+            
+            document.getElementById('description').value = editor.getHTML();
+            
+            const formData = new FormData(this);
+            const eventData = Object.fromEntries(formData.entries());
+            
+            // 선택되지 않은 타입의 필드 제거
+            if (selectedEventType === 'FCFS') {
+                delete eventData.endTime;
+                delete eventData.drawTime;
+                delete eventData.winnerCount;
+            } else {
+                delete eventData.maxParticipants;
+            }
+            
+            // 버튼 로딩 상태
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = '생성 중...';
+            submitBtn.disabled = true;
+            
+            fetch('/api/admin/events', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(eventData)
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.href = '/admin/events';
+                } else {
+                    throw new Error('이벤트 생성 실패');
+                }
+            })
+            .catch(error => {
+                alert('이벤트 생성에 실패했습니다. 다시 시도해주세요.');
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            });
+        });
+
+        // 기본 시간 설정
+        document.addEventListener('DOMContentLoaded', function() {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            
+            const defaultStartTime = new Date(now.getTime() + 60 * 60 * 1000);
+            document.getElementById('startTime').value = defaultStartTime.toISOString().slice(0, 16);
+            
+            const defaultEndTime = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+            document.getElementById('endTime').value = defaultEndTime.toISOString().slice(0, 16);
+            
+            const defaultDrawTime = new Date(now.getTime() + 25 * 60 * 60 * 1000);
+            document.getElementById('drawTime').value = defaultDrawTime.toISOString().slice(0, 16);
+        });
+    </script>
+</body>
+</html> 

@@ -30,4 +30,15 @@ public class Notification extends BaseTimeEntity {
 
     @Column(nullable = false)
     private boolean isRead = false;
+
+    public Notification(User user, Event event, String message) {
+        this.user = user;
+        this.event = event;
+        this.message = message;
+    }
+
+    public Notification(User user, String message) {
+        this.user = user;
+        this.message = message;
+    }
 }

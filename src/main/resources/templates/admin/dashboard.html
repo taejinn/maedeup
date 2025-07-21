@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 대시보드 - 매듭</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", Pretendard, Roboto, "Noto Sans KR", "Segoe UI", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand text-primary fw-bold fs-4" th:href="@{/}">
+                매듭
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/}">홈</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/events}">이벤트</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/my}">마이페이지</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" th:href="@{/admin}">관리자</a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <span sec:authentication="name"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" th:href="@{/my}">마이페이지</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form th:action="@{/logout}" method="post" class="d-inline">
+                                    <button type="submit" class="dropdown-item">로그아웃</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="text-center mb-5">
+                    <h1 class="h2 mb-3">관리자 대시보드</h1>
+                    <p class="text-muted">이벤트 및 사용자 관리</p>
+                </div>
+
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <h5 class="card-title mb-4">관리 메뉴</h5>
+                        
+                        <div class="list-group list-group-flush">
+                            <a th:href="@{/admin/events/create}" class="list-group-item list-group-item-action d-flex align-items-center py-3">
+                                <div class="me-3">
+                                    <i class="bi bi-plus-circle text-primary fs-4"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">이벤트 생성</h6>
+                                    <p class="mb-0 text-muted small">새로운 선착순 또는 추첨 이벤트를 생성합니다</p>
+                                </div>
+                                <div class="ms-auto">
+                                    <i class="bi bi-chevron-right text-muted"></i>
+                                </div>
+                            </a>
+
+                            <a th:href="@{/admin/events}" class="list-group-item list-group-item-action d-flex align-items-center py-3">
+                                <div class="me-3">
+                                    <i class="bi bi-list-check text-success fs-4"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">이벤트 관리</h6>
+                                    <p class="mb-0 text-muted small">기존 이벤트를 조회, 수정, 삭제합니다</p>
+                                </div>
+                                <div class="ms-auto">
+                                    <i class="bi bi-chevron-right text-muted"></i>
+                                </div>
+                            </a>
+
+                            <a th:href="@{/admin/send-notification}" class="list-group-item list-group-item-action d-flex align-items-center py-3">
+                                <div class="me-3">
+                                    <i class="bi bi-bell text-warning fs-4"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">알림 전송</h6>
+                                    <p class="mb-0 text-muted small">사용자들에게 알림을 전송합니다</p>
+                                </div>
+                                <div class="ms-auto">
+                                    <i class="bi bi-chevron-right text-muted"></i>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-white border-top mt-5 py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-dark">매듭</h6>
+                    <p class="mb-0 text-muted small">실시간 이벤트 플랫폼으로 공정한 기회를 제공합니다.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <small class="text-muted">&copy; 2024 매듭. All rights reserved.</small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

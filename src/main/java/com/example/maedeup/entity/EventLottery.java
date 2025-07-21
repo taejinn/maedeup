@@ -32,4 +32,16 @@ public class EventLottery extends Event {
         this.drawTime = drawTime;
         this.winnerCount = winnerCount;
     }
+    
+    public void setWinnerCount(Integer winnerCount) {
+        this.winnerCount = winnerCount;
+    }
+    
+    public void setDrawTime(LocalDateTime drawTime) {
+        this.drawTime = drawTime;
+    }
+    
+    public void setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
+    }
 }

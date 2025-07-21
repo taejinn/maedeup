@@ -23,7 +23,7 @@ import java.util.List;
 @Tag(name = "Admin Event", description = "관리자 이벤트 관리 API")
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/admin/events")
+@RequestMapping("/api/admin/events")
 @Slf4j
 public class AdminEventController {
 

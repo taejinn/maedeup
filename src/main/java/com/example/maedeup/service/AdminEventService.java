@@ -5,6 +5,8 @@ import com.example.maedeup.dto.EventUpdateRequestDto;
 import com.example.maedeup.dto.ParticipantResponseDto;
 import com.example.maedeup.entity.*;
 import com.example.maedeup.entity.EventType;
+import com.example.maedeup.entity.EventFcfs;
+import com.example.maedeup.entity.EventLottery;
 import com.example.maedeup.entity.ParticipationStatus;
 import com.example.maedeup.exception.EntityNotFoundException;
 import com.example.maedeup.exception.ValidationException;
@@ -30,6 +32,7 @@ public class AdminEventService {
     private final ParticipationRepository participationRepository;
     private final UserRepository userRepository;
     private final RedisEventCounterService redisEventCounterService;
+    private final RedisLockService redisLockService;
 
     @Transactional
     public Event createEvent(EventCreateRequestDto requestDto, String creatorLoginId) {
@@ -113,23 +116,63 @@ public class AdminEventService {
     @Transactional
     public void updateEvent(Long eventId, EventUpdateRequestDto requestDto) {
         log.info("이벤트 수정 처리 시작 - 이벤트 ID: {}, 새 제목: {}", eventId, requestDto.title());
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 이벤트입니다."));
+        
+        String lockKey = "event:update:" + eventId;
+        redisLockService.executeWithLock(lockKey, () -> {
+            Event event = eventRepository.findById(eventId)
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 이벤트입니다."));
 
-        String oldTitle = event.getTitle();
-        event.setTitle(requestDto.title());
-        event.setDescription(requestDto.description());
-        event.setStartTime(requestDto.startTime());
-        log.info("이벤트 수정 완료 - 이벤트 ID: {}, 기존 제목: {}, 새 제목: {}", eventId, oldTitle, requestDto.title());
+            String oldTitle = event.getTitle();
+            
+            event.setTitle(requestDto.title());
+            event.setDescription(requestDto.description());
+            event.setStartTime(requestDto.startTime());
+            
+            if (event instanceof EventFcfs fcfsEvent) {
+                log.info("선착순 이벤트 수정 - 이벤트 ID: {}, 기존 최대 참여자: {}, 새 최대 참여자: {}", 
+                        eventId, fcfsEvent.getMaxParticipants(), requestDto.maxParticipants());
+                fcfsEvent.setMaxParticipants(requestDto.maxParticipants());
+            } else if (event instanceof EventLottery lotteryEvent) {
+                log.info("추첨 이벤트 수정 - 이벤트 ID: {}, 기존 당첨자 수: {}, 새 당첨자 수: {}", 
+                        eventId, lotteryEvent.getWinnerCount(), requestDto.winnerCount());
+                
+                if (requestDto.endTime() != null) {
+                    lotteryEvent.setEndTime(requestDto.endTime());
+                }
+                if (requestDto.winnerCount() != null) {
+                    lotteryEvent.setWinnerCount(requestDto.winnerCount());
+                }
+                if (requestDto.drawTime() != null) {
+                    lotteryEvent.setDrawTime(requestDto.drawTime());
+                }
+                if (requestDto.resultVisibility() != null) {
+                    event.setResultVisibility(requestDto.resultVisibility());
+                }
+            }
+            
+            log.info("이벤트 수정 완료 - 이벤트 ID: {}, 기존 제목: {}, 새 제목: {}", eventId, oldTitle, requestDto.title());
+        });
     }
 
     @Transactional
     public void deleteEvent(Long eventId) {
         log.info("이벤트 삭제 처리 시작 - 이벤트 ID: {}", eventId);
-        redisEventCounterService.clearEventData(eventId);
-        log.info("Redis 이벤트 데이터 삭제 완료 - 이벤트 ID: {}", eventId);
-        eventRepository.deleteById(eventId);
-        log.info("이벤트 삭제 완료 - 이벤트 ID: {}", eventId);
+        
+        String lockKey = "event:delete:" + eventId;
+        redisLockService.executeWithLock(lockKey, () -> {
+            Event event = eventRepository.findById(eventId)
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 이벤트입니다."));
+                    
+                    List<Participation> participations = participationRepository.findByEventId(eventId);
+        if (!participations.isEmpty()) {
+            throw new ValidationException("참여자가 있는 이벤트는 삭제할 수 없습니다.");
+        }
+            
+            redisEventCounterService.clearEventData(eventId);
+            log.info("Redis 이벤트 데이터 삭제 완료 - 이벤트 ID: {}", eventId);
+            eventRepository.deleteById(eventId);
+            log.info("이벤트 삭제 완료 - 이벤트 ID: {}", eventId);
+        });
     }
 
     public List<ParticipantResponseDto> getEventParticipants(Long eventId) {
@@ -139,6 +182,7 @@ public class AdminEventService {
                         p.getId(),
                         p.getUser().getId(),
                         p.getUser().getNickname(),
+                        p.getUser().getLoginId(),
                         p.getStatus(),
                         p.getParticipatedAt()
                 ))
@@ -150,14 +194,29 @@ public class AdminEventService {
     @Transactional
     public void drawLotteryWinners(Long eventId) {
         log.info("추첨 실행 시작 - 이벤트 ID: {}", eventId);
+        
+        String lockKey = "lottery:draw:" + eventId;
+        redisLockService.executeWithLock(lockKey, () -> {
+            processLotteryDraw(eventId);
+        });
+        
+        log.info("추첨 실행 완료 - 이벤트 ID: {}", eventId);
+    }
+    
+    private void processLotteryDraw(Long eventId) {
         EventLottery lotteryEvent = eventRepository.findById(eventId)
                 .filter(e -> e instanceof EventLottery)
                 .map(e -> (EventLottery) e)
-                .orElseThrow(() -> new IllegalStateException("추첨 이벤트가 아니거나 존재하지 않습니다."));
+                .orElseThrow(() -> new ValidationException("추첨 이벤트가 아니거나 존재하지 않습니다."));
 
         List<Participation> pendingParticipants = participationRepository.findByEventIdAndStatus(eventId, ParticipationStatus.PENDING);
         if (pendingParticipants.isEmpty()) {
-            throw new IllegalStateException("추첨할 참여자가 없습니다.");
+            throw new ValidationException("추첨할 참여자가 없습니다.");
+        }
+
+        List<Participation> alreadyDrawnParticipants = participationRepository.findByEventIdAndStatus(eventId, ParticipationStatus.SUCCESS);
+        if (!alreadyDrawnParticipants.isEmpty()) {
+            throw new ValidationException("이미 추첨이 완료된 이벤트입니다.");
         }
 
         log.info("추첨 대상자 확인 완료 - 이벤트 ID: {}, 총 참여자: {}, 당첨자 수: {}", 
@@ -177,6 +236,5 @@ public class AdminEventService {
 
         participationRepository.saveAll(winners);
         participationRepository.saveAll(losers);
-        log.info("추첨 실행 완료 - 이벤트 ID: {}", eventId);
     }
 }

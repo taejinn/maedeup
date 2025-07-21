@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이벤트 상세보기 - 매듭</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", Pretendard, Roboto, "Noto Sans KR", "Segoe UI", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+        }
+        .page-header {
+            background: white;
+            border-bottom: 1px solid #e9ecef;
+            padding: 2rem 0;
+        }
+        .content-card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e9ecef;
+            overflow: hidden;
+        }
+        .info-section {
+            padding: 1.5rem;
+            border-bottom: 1px solid #f8f9fa;
+        }
+        .table th {
+            font-weight: 600;
+            border-bottom: 2px solid #e9ecef;
+            color: #495057;
+            background-color: #f8f9fa;
+            border-top: none;
+        }
+        .table td {
+            vertical-align: middle;
+            padding: 1rem 0.75rem;
+            border-color: #f8f9fa;
+        }
+        .table-hover tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        .badge {
+            font-size: 0.75rem;
+            padding: 0.5rem 0.75rem;
+            font-weight: 500;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+        .event-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .event-info-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .event-info-item .icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.75rem;
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand text-primary fw-bold fs-4" th:href="@{/}">
+                매듭
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/}">홈</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/events}">이벤트</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/my}">마이페이지</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" th:href="@{/admin}">관리자</a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <span sec:authentication="name"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" th:href="@{/my}">마이페이지</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form th:action="@{/logout}" method="post" class="d-inline">
+                                    <button type="submit" class="dropdown-item">로그아웃</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="page-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-2">
+                            <li class="breadcrumb-item"><a th:href="@{/admin}" class="text-decoration-none">관리자</a></li>
+                            <li class="breadcrumb-item"><a th:href="@{/admin/events}" class="text-decoration-none">이벤트 관리</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">이벤트 상세보기</li>
+                        </ol>
+                    </nav>
+                    <h1 class="h3 mb-2 text-dark" th:text="${event.title}">이벤트 제목</h1>
+                    <p class="text-muted mb-0">이벤트 상세 정보 및 참여자 현황</p>
+                </div>
+                <div class="col-auto">
+                    <div class="btn-group" role="group">
+                        <a th:href="@{/admin/events/{id}/edit(id=${event.eventId})}" class="btn btn-outline-primary">
+                            <i class="bi bi-pencil me-1"></i>
+                            수정
+                        </a>
+                        <button class="btn btn-outline-info" 
+                                th:if="${event.eventType.name() == 'LOTTERY'}"
+                                th:data-event-id="${event.eventId}"
+                                onclick="drawLottery(this.dataset.eventId)">
+                            <i class="bi bi-dice-6 me-1"></i>
+                            추첨
+                        </button>
+                        <button class="btn btn-outline-danger" 
+                                th:data-event-id="${event.eventId}"
+                                th:data-event-title="${event.title}"
+                                onclick="deleteEvent(this.dataset.eventId, this.dataset.eventTitle)">
+                            <i class="bi bi-trash me-1"></i>
+                            삭제
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container my-4">
+        <!-- 이벤트 기본 정보 -->
+        <div class="content-card mb-4">
+            <div class="info-section">
+                <h5 class="mb-3">
+                    <i class="bi bi-info-circle text-primary me-2"></i>
+                    기본 정보
+                </h5>
+                
+                <div class="event-info-grid">
+                    <div class="event-info-item">
+                        <div class="icon bg-primary text-white">
+                            <i class="bi bi-tag"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block">이벤트 타입</small>
+                            <span class="badge" 
+                                  th:classappend="${event.eventType.name() == 'FCFS'} ? 'bg-success' : 'bg-info'"
+                                  th:text="${event.eventType.name() == 'FCFS'} ? '선착순' : '추첨'"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="event-info-item">
+                        <div class="icon bg-success text-white">
+                            <i class="bi bi-calendar"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block">시작 시간</small>
+                            <strong th:text="${#temporals.format(event.startTime, 'yyyy-MM-dd HH:mm')}">2024-01-01 10:00</strong>
+                        </div>
+                    </div>
+                    
+                    <div class="event-info-item" th:if="${event.eventType.name() == 'FCFS'}">
+                        <div class="icon bg-warning text-white">
+                            <i class="bi bi-people"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block">선착순 인원</small>
+                            <strong th:text="${event.maxParticipants != null ? event.maxParticipants + '명' : '무제한'}">100명</strong>
+                        </div>
+                    </div>
+                    
+                    <div class="event-info-item" th:if="${event.eventType.name() == 'LOTTERY'}">
+                        <div class="icon bg-info text-white">
+                            <i class="bi bi-award"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block">당첨자 수</small>
+                            <strong th:text="${event.eventLottery?.winnerCount}">10명</strong>
+                        </div>
+                    </div>
+                    
+                    <div class="event-info-item" th:if="${event.eventType.name() == 'LOTTERY'}">
+                        <div class="icon bg-secondary text-white">
+                            <i class="bi bi-clock"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block">추첨 시간</small>
+                            <strong th:text="${#temporals.format(event.eventLottery?.drawTime, 'yyyy-MM-dd HH:mm')}">2024-01-01 18:00</strong>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3" th:if="${event.description}">
+                    <small class="text-muted d-block mb-1">이벤트 설명</small>
+                    <div class="mb-0" th:utext="${event.description}">이벤트 설명이 여기에 표시됩니다.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 참여 현황 -->
+        <div class="content-card">
+            <div class="info-section">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">
+                        <i class="bi bi-people text-primary me-2"></i>
+                        참여자 현황
+                    </h5>
+                    <span class="badge bg-primary fs-6" th:text="|총 ${#lists.size(participants)}명|">총 0명</span>
+                </div>
+                
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="h4 mb-1 text-primary" th:text="${#lists.size(participants)}">0</div>
+                            <small class="text-muted">총 참여자</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3" th:if="${event.eventType.name() == 'LOTTERY'}">
+                        <div class="stat-card">
+                            <div class="h4 mb-1 text-success" 
+                                 th:text="${#lists.size(participants.?[participationStatus.name() == 'SUCCESS'])}">0</div>
+                            <small class="text-muted">당첨자</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3" th:if="${event.eventType.name() == 'LOTTERY'}">
+                        <div class="stat-card">
+                            <div class="h4 mb-1 text-danger"
+                                 th:text="${#lists.size(participants.?[participationStatus.name() == 'FAIL'])}">0</div>
+                            <small class="text-muted">미당첨</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3" th:if="${event.eventType.name() == 'LOTTERY'}">
+                        <div class="stat-card">
+                            <div class="h4 mb-1 text-warning"
+                                 th:text="${#lists.size(participants.?[participationStatus.name() == 'PENDING'])}">0</div>
+                            <small class="text-muted">대기중</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table-responsive" th:if="${!#lists.isEmpty(participants)}">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col" width="10%" class="text-center">번호</th>
+                            <th scope="col" width="25%">사용자 정보</th>
+                            <th scope="col" width="20%">참여 시간</th>
+                            <th scope="col" width="15%" class="text-center">상태</th>
+                            <th scope="col" width="30%" class="text-center">비고</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="participant, iterStat : ${participants}">
+                            <td class="text-center" th:text="${iterStat.count}">1</td>
+                            <td>
+                                <div>
+                                    <div class="fw-medium" th:text="${participant.userName}">사용자명</div>
+                                    <small class="text-muted" th:text="${participant.userLoginId}">user@example.com</small>
+                                </div>
+                            </td>
+                            <td>
+                                <small th:text="${#temporals.format(participant.participationTime, 'yyyy-MM-dd HH:mm:ss')}">
+                                    2024-01-01 10:00:00
+                                </small>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge" 
+                                      th:classappend="${participant.participationStatus.name() == 'SUCCESS'} ? 'bg-success' : 
+                                                     (${participant.participationStatus.name() == 'FAIL'} ? 'bg-danger' : 
+                                                     (${participant.participationStatus.name() == 'PENDING'} ? 'bg-warning' : 'bg-primary'))"
+                                      th:text="${participant.participationStatus.name() == 'SUCCESS'} ? '참여완료' : 
+                                               (${participant.participationStatus.name() == 'FAIL'} ? '미당첨' : 
+                                               (${participant.participationStatus.name() == 'PENDING'} ? '대기중' : '참여'))">
+                                    참여완료
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <small class="text-muted" th:if="${participant.participationStatus.name() == 'SUCCESS'}">
+                                    🎉 완료!
+                                </small>
+                                <small class="text-muted" th:if="${participant.participationStatus.name() == 'FAIL'}">
+                                    다음 기회에
+                                </small>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="text-center py-5" th:if="${#lists.isEmpty(participants)}">
+                <div class="display-1 text-muted mb-3">
+                    <i class="bi bi-people"></i>
+                </div>
+                <h5 class="text-muted mb-2">아직 참여자가 없습니다</h5>
+                <p class="text-muted">이벤트가 시작되면 참여자 목록이 여기에 표시됩니다.</p>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-white border-top mt-5 py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-dark">매듭</h6>
+                    <p class="mb-0 text-muted small">실시간 이벤트 플랫폼으로 공정한 기회를 제공합니다.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <small class="text-muted">&copy; 2024 매듭. All rights reserved.</small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function deleteEvent(eventId, eventTitle) {
+            if (confirm(`정말로 "${eventTitle}" 이벤트를 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없으며, 관련된 모든 참여 기록이 함께 삭제됩니다.`)) {
+                fetch(`/api/admin/events/${eventId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        alert('이벤트가 성공적으로 삭제되었습니다.');
+                        window.location.href = '/admin/events';
+                    } else {
+                        alert('이벤트 삭제에 실패했습니다. 다시 시도해주세요.');
+                    }
+                })
+                .catch(error => {
+                    alert('오류가 발생했습니다. 다시 시도해주세요.');
+                });
+            }
+        }
+
+        function drawLottery(eventId) {
+            if (confirm('추첨을 진행하시겠습니까?\n\n추첨이 완료되면 참여자들의 당첨 여부가 결정됩니다.')) {
+                fetch(`/api/admin/events/${eventId}/draw`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        alert('추첨이 성공적으로 완료되었습니다!');
+                        location.reload();
+                    } else {
+                        alert('추첨에 실패했습니다. 다시 시도해주세요.');
+                    }
+                })
+                .catch(error => {
+                    alert('오류가 발생했습니다. 다시 시도해주세요.');
+                });
+            }
+        }
+    </script>
+</body>
+</html> 

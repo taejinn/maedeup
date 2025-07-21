@@ -28,7 +28,7 @@ import java.util.List;
 @Tag(name = "Event", description = "이벤트 관련 API")
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/events")
+@RequestMapping("/api/events")
 @Slf4j
 public class EventController {
 

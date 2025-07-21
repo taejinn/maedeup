@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이벤트 관리 - 매듭</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", Pretendard, Roboto, "Noto Sans KR", "Segoe UI", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+        }
+        .page-header {
+            background: white;
+            border-bottom: 1px solid #e9ecef;
+            padding: 2rem 0;
+        }
+        .content-card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e9ecef;
+            overflow: hidden;
+        }
+        .table th {
+            font-weight: 600;
+            border-bottom: 2px solid #e9ecef;
+            color: #495057;
+            background-color: #f8f9fa;
+            border-top: none;
+        }
+        .table td {
+            vertical-align: middle;
+            padding: 1rem 0.75rem;
+            border-color: #f8f9fa;
+        }
+        .table-hover tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        .badge {
+            font-size: 0.75rem;
+            padding: 0.5rem 0.75rem;
+            font-weight: 500;
+        }
+        .btn-group-sm > .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        .filter-section {
+            background: #f8f9fa;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand text-primary fw-bold fs-4" th:href="@{/}">
+                매듭
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/}">홈</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/events}">이벤트</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/my}">마이페이지</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" th:href="@{/admin}">관리자</a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <span sec:authentication="name"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" th:href="@{/my}">마이페이지</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form th:action="@{/logout}" method="post" class="d-inline">
+                                    <button type="submit" class="dropdown-item">로그아웃</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="page-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-2">
+                            <li class="breadcrumb-item"><a th:href="@{/admin}" class="text-decoration-none">관리자</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">이벤트 관리</li>
+                        </ol>
+                    </nav>
+                    <h1 class="h3 mb-2 text-dark">이벤트 관리</h1>
+                    <p class="text-muted mb-0">등록된 이벤트를 관리하고 참여자를 확인할 수 있습니다</p>
+                </div>
+                <div class="col-auto">
+                    <a th:href="@{/admin/events/create}" class="btn btn-primary">
+                        <i class="bi bi-plus-lg me-1"></i>
+                        새 이벤트 생성
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container my-4">
+        <div class="content-card" th:if="${!events.empty}">
+            <div class="filter-section">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-funnel text-primary me-2"></i>
+                            <span class="fw-medium">총 <span class="text-primary" th:text="${events.totalElements}">0</span>개의 이벤트</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <input type="radio" class="btn-check" name="filter" id="all" autocomplete="off" checked>
+                            <label class="btn btn-outline-secondary" for="all">전체</label>
+                            
+                            <input type="radio" class="btn-check" name="filter" id="fcfs" autocomplete="off">
+                            <label class="btn btn-outline-secondary" for="fcfs">선착순</label>
+                            
+                            <input type="radio" class="btn-check" name="filter" id="lottery" autocomplete="off">
+                            <label class="btn btn-outline-secondary" for="lottery">추첨</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col" width="8%" class="text-center">타입</th>
+                            <th scope="col" width="35%">이벤트 정보</th>
+                            <th scope="col" width="15%">일정</th>
+                            <th scope="col" width="12%" class="text-center">참여자</th>
+                            <th scope="col" width="10%" class="text-center">상태</th>
+                            <th scope="col" width="20%" class="text-center">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="event : ${events.content}">
+                            <td class="text-center">
+                                <span class="badge" 
+                                      th:classappend="${event.eventType.name() == 'FCFS'} ? 'bg-success' : 'bg-info'"
+                                      th:text="${event.eventType.name() == 'FCFS'} ? '선착순' : '추첨'"></span>
+                            </td>
+                            <td>
+                                <div>
+                                    <h6 class="mb-1 fw-bold" th:text="${event.title}">이벤트 제목</h6>
+                                    <small class="text-muted">이벤트 ID: <span th:text="${event.eventId}">1</span></small>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="small">
+                                    <div><strong th:text="${#temporals.format(event.startTime, 'MM/dd')}">12/25</strong></div>
+                                    <div class="text-muted" th:text="${#temporals.format(event.startTime, 'HH:mm')}">10:00</div>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-light text-dark">
+                                    <i class="bi bi-people me-1"></i><span th:text="${participantCounts[event.eventId] ?: 0}">0</span>
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-success">활성</span>
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a th:href="@{/admin/events/{id}(id=${event.eventId})}" 
+                                       class="btn btn-outline-primary" 
+                                       data-bs-toggle="tooltip" 
+                                       title="상세보기">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a th:href="@{/admin/events/{id}/edit(id=${event.eventId})}" 
+                                       class="btn btn-outline-secondary"
+                                       data-bs-toggle="tooltip" 
+                                       title="수정">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button class="btn btn-outline-info" 
+                                            th:if="${event.eventType.name() == 'LOTTERY'}"
+                                            th:data-event-id="${event.eventId}"
+                                            onclick="drawLottery(this.dataset.eventId)"
+                                            data-bs-toggle="tooltip" 
+                                            title="추첨">
+                                        <i class="bi bi-dice-6"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" 
+                                            th:if="${(participantCounts[event.eventId] ?: 0) == 0}"
+                                            th:data-event-id="${event.eventId}"
+                                            th:data-event-title="${event.title}"
+                                            onclick="deleteEvent(this.dataset.eventId, this.dataset.eventTitle)"
+                                            data-bs-toggle="tooltip" 
+                                            title="삭제">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    
+                                    <button class="btn btn-outline-secondary" 
+                                            th:if="${(participantCounts[event.eventId] ?: 0) > 0}"
+                                            disabled
+                                            data-bs-toggle="tooltip" 
+                                            title="참여자가 있어 삭제할 수 없습니다">
+                                        <i class="bi bi-shield-check"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="content-card text-center py-5" th:if="${events.empty}">
+            <div class="display-1 text-muted mb-3">
+                <i class="bi bi-calendar-x"></i>
+            </div>
+            <h4 class="text-muted mb-3">등록된 이벤트가 없습니다</h4>
+            <p class="text-muted mb-4">첫 번째 이벤트를 생성해보세요.</p>
+            <a th:href="@{/admin/events/create}" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-1"></i>
+                첫 번째 이벤트 생성하기
+            </a>
+        </div>
+
+        <nav th:if="${totalPages > 1}" aria-label="페이지 네비게이션" class="mt-4">
+            <ul class="pagination justify-content-center">
+                <li class="page-item" th:classappend="${!hasPrevious} ? 'disabled'">
+                    <a class="page-link" th:href="@{/admin/events(page=${currentPage - 1})}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                
+                <li class="page-item" 
+                    th:each="pageNum : ${#numbers.sequence(0, totalPages - 1)}"
+                    th:classappend="${pageNum == currentPage} ? 'active'">
+                    <a class="page-link" 
+                       th:href="@{/admin/events(page=${pageNum})}"
+                       th:text="${pageNum + 1}">1</a>
+                </li>
+                
+                <li class="page-item" th:classappend="${!hasNext} ? 'disabled'">
+                    <a class="page-link" th:href="@{/admin/events(page=${currentPage + 1})}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <footer class="bg-white border-top mt-5 py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-dark">매듭</h6>
+                    <p class="mb-0 text-muted small">실시간 이벤트 플랫폼으로 공정한 기회를 제공합니다.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <small class="text-muted">&copy; 2024 매듭. All rights reserved.</small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+        <div id="alertToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <div class="rounded me-2" id="toastIcon" style="width: 20px; height: 20px;"></div>
+                <strong class="me-auto" id="toastTitle">알림</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="toastMessage">
+                메시지가 여기에 표시됩니다.
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+
+        function showToast(title, message, type = 'info') {
+            const toastElement = document.getElementById('alertToast');
+            const toastIcon = document.getElementById('toastIcon');
+            const toastTitle = document.getElementById('toastTitle');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            toastIcon.className = 'rounded me-2';
+            if (type === 'success') {
+                toastIcon.style.backgroundColor = '#198754';
+                toastElement.className = 'toast border-success';
+            } else if (type === 'error') {
+                toastIcon.style.backgroundColor = '#dc3545';
+                toastElement.className = 'toast border-danger';
+            } else if (type === 'warning') {
+                toastIcon.style.backgroundColor = '#fd7e14';
+                toastElement.className = 'toast border-warning';
+            } else {
+                toastIcon.style.backgroundColor = '#0d6efd';
+                toastElement.className = 'toast border-primary';
+            }
+            
+            toastTitle.textContent = title;
+            toastMessage.textContent = message;
+            
+            const toast = new bootstrap.Toast(toastElement);
+            toast.show();
+        }
+
+        async function deleteEvent(eventId, eventTitle) {
+            if (confirm(`정말로 "${eventTitle}" 이벤트를 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없으며, 관련된 모든 참여 기록이 함께 삭제됩니다.`)) {
+                try {
+                    const response = await fetch(`/api/admin/events/${eventId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        showToast('삭제 완료', '이벤트가 성공적으로 삭제되었습니다.', 'success');
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        const errorData = await response.json();
+                        const errorMessage = errorData.message || '이벤트 삭제에 실패했습니다.';
+                        showToast('삭제 실패', errorMessage, 'error');
+                    }
+                } catch (error) {
+                    console.error('삭제 요청 중 오류:', error);
+                    showToast('오류 발생', '네트워크 오류가 발생했습니다. 다시 시도해주세요.', 'error');
+                }
+            }
+        }
+
+        async function drawLottery(eventId) {
+            if (confirm('추첨을 진행하시겠습니까?\n\n추첨이 완료되면 참여자들의 당첨 여부가 결정됩니다.')) {
+                try {
+                    const response = await fetch(`/api/admin/events/${eventId}/draw`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        showToast('추첨 완료', '추첨이 성공적으로 완료되었습니다!', 'success');
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        const errorData = await response.json();
+                        const errorMessage = errorData.message || '추첨에 실패했습니다.';
+                        showToast('추첨 실패', errorMessage, 'error');
+                    }
+                } catch (error) {
+                    console.error('추첨 요청 중 오류:', error);
+                    showToast('오류 발생', '네트워크 오류가 발생했습니다. 다시 시도해주세요.', 'error');
+                }
+            }
+        }
+    </script>
+</body>
+</html> 

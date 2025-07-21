@@ -23,4 +23,8 @@ public class EventFcfs extends Event {
         super(creator, title, description, startTime);
         this.maxParticipants = maxParticipants;
     }
+    
+    public void setMaxParticipants(Integer maxParticipants) {
+        this.maxParticipants = maxParticipants;
+    }
 }

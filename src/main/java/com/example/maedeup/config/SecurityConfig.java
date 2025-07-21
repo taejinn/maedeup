@@ -15,11 +15,17 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .csrf(csrf -> csrf.disable()) // API 사용을 위해 CSRF 비활성화
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/", "/signin", "/signup", "/css/**", "/js/**").permitAll()
+                        .requestMatchers("/", "/signin", "/signup", "/login", "/css/**", "/js/**",
+                                "/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
                         .anyRequest().authenticated()
                 )
+
+                .httpBasic(httpBasic -> httpBasic
+                        .realmName("Maedeup API")
+                ) // Basic Authentication 활성화
 
                 .formLogin(formLogin -> formLogin
                         .loginPage("/login")
